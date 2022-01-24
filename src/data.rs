@@ -2,20 +2,6 @@ use crate::error::{Error, Result};
 use serde::Deserialize;
 use serde_aux::prelude::deserialize_number_from_string;
 
-fn parse_line<'a, const N: usize>(line: &'a str) -> Result<[&'a str; N]> {
-    let mut res: [&'a str; N] = [Default::default(); N];
-    let mut max = 0_usize;
-    for (i, elm) in line.split(';').take(N).enumerate() {
-        res[i] = elm.trim();
-        max += 1;
-    }
-    if max < N {
-        Err(Error::Parse(format!("Could not parse line {}", line)))
-    } else {
-        Ok(res)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Region {
     pub identifier: String,
@@ -25,7 +11,8 @@ pub struct Region {
 impl Region {
     pub(crate) fn parse_list(list: &str) -> Result<Vec<Region>> {
         list.lines()
-            .filter(|&s| !s.trim().is_empty())
+            .map(str::trim)
+            .filter(|&s| !s.is_empty())
             .map(TryFrom::try_from)
             .collect::<Result<Vec<Region>>>()
     }
@@ -35,10 +22,10 @@ impl TryFrom<&str> for Region {
     type Error = crate::error::Error;
 
     fn try_from(line: &str) -> std::result::Result<Self, Self::Error> {
-        let values = parse_line::<2>(line)?;
+        let mut values = line.split(';').map(str::trim);
         Ok(Region {
-            identifier: values[0].to_string(),
-            name: values[1].to_string(),
+            identifier: values.next().ok_or(Error::Parse(format!("Could not parse region identifier. Line \"{}\"",line)))?.to_string(),
+            name: values.next().ok_or(Error::Parse(format!("Could not parse region name. Line \"{}\"",line)))?.to_string(),
         })
     }
 }
