@@ -58,10 +58,12 @@ impl TubeDBClient {
 //     use crate::TubeDBClient;
 //
 //     const SERVER_URL: &str = "http://vhrz1078.hrz.uni-marburg.de:8100";
+//     const USERNAME: &str = "user";
+//     const PASSWORD: &str = "pass";
 //
 //     #[tokio::test]
 //     async fn region_list() {
-//         let ai = AuthInfo::Digest{username: "geoengine".to_string(),  password: "bvq$LFhQGY5f".to_string()};
+//         let ai = AuthInfo::Digest{username: USERNAME.to_string(),  password: PASSWORD.to_string()};
 //         let client = TubeDBClient::new(SERVER_URL, ai).unwrap();
 //         let result = client.region_list().await;
 //         assert!(result.is_ok());
@@ -70,7 +72,7 @@ impl TubeDBClient {
 //
 //     #[tokio::test]
 //     async fn region_json_ok() {
-//         let ai = AuthInfo::Digest{username: "geoengine".to_string(),  password: "bvq$LFhQGY5f".to_string()};
+//         let ai = AuthInfo::Digest{username: USERNAME.to_string(),  password: PASSWORD.to_string()};
 //         let client = TubeDBClient::new(SERVER_URL, ai).unwrap();
 //         let result = client.region_json("nature40").await;
 //         assert!(result.is_ok());
@@ -79,7 +81,7 @@ impl TubeDBClient {
 //
 //     #[tokio::test]
 //     async fn region_json_illegal_region() {
-//         let ai = AuthInfo::Digest{username: "geoengine".to_string(),  password: "bvq$LFhQGY5f".to_string()};
+//         let ai = AuthInfo::Digest{username: USERNAME.to_string(),  password: PASSWORD.to_string()};
 //         let client = TubeDBClient::new(SERVER_URL, ai).unwrap();
 //         let result = client.region_json("ASDF").await;
 //         assert!(result.is_err());
