@@ -1,6 +1,26 @@
+use diqwest::core::WithDigestAuth;
+use reqwest::{RequestBuilder, Response};
 use crate::error::{Error, Result};
 use serde::Deserialize;
 use serde_aux::prelude::deserialize_number_from_string;
+
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub enum AuthInfo {
+    None,
+    Basic{username: String, password: String},
+    Digest{username: String, password: String}
+}
+
+impl AuthInfo {
+
+    pub async fn send_request(&self, request_builder: RequestBuilder) -> std::result::Result<Response, Error> {
+        Ok(match self {
+            Self::None => request_builder.send().await?,
+            Self::Basic{username,password} => request_builder.basic_auth(username, Some(password)).send().await?,
+            Self::Digest {username, password} => request_builder.send_with_digest_auth(username, password).await?
+        })
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Region {

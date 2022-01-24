@@ -1,6 +1,6 @@
-use crate::data::{Region, RegionInfo};
+use crate::data::{AuthInfo, Region, RegionInfo};
 use crate::error::{Error, Result};
-use reqwest::{Client, IntoUrl, Url};
+use reqwest::{Client, IntoUrl, RequestBuilder, Response, Url};
 
 pub mod data;
 pub mod error;
@@ -8,37 +8,37 @@ pub mod error;
 #[derive(Clone)]
 pub struct TubeDBClient {
     client: Client,
+    auth_info: AuthInfo,
     base_url: Url,
 }
 
 impl TubeDBClient {
-    pub fn new(base_url: impl IntoUrl) -> Result<TubeDBClient> {
+    pub fn new(base_url: impl IntoUrl, auth_info: AuthInfo) -> Result<TubeDBClient> {
         Ok(TubeDBClient {
             client: Client::new(),
+            auth_info,
             base_url: base_url.into_url().map_err(|_| Error::InvalidUrl)?,
         })
     }
 
+    fn build_url(&self, path: &str) -> Url {
+        self.base_url.join(path).expect("Invalid request path")
+    }
+
+    async fn send_request(&self, request: RequestBuilder) -> Result<Response> {
+        Ok(self.auth_info.send_request(request).await?)
+    }
+
     pub async fn region_list(&self) -> Result<Vec<Region>> {
-        let url = self
-            .base_url
-            .join("/tsdb/region_list")
-            .expect("Must be valid");
-        let result = self.client.get(url).send().await?.text().await?;
+        let request = self.client.get(self.build_url("/tsdb/region_list"));
+        let result = self.send_request(request).await?.text().await?;
         Region::parse_list(&result)
     }
 
     pub async fn region_json(&self, region: impl AsRef<str>) -> Result<RegionInfo> {
-        let url = self
-            .base_url
-            .join("/tsdb/region.json")
-            .expect("Must be valid");
         let params = [("region", region.as_ref())];
-        let result = self
-            .client
-            .get(url)
-            .query(&params)
-            .send()
+        let request = self.client.get(self.build_url("/tsdb/region.json")).query(&params);
+        let result = self.send_request(request)
             .await?
             .text()
             .await?;
@@ -54,11 +54,15 @@ impl TubeDBClient {
 // TODO: Mock a tube-db instance
 // #[cfg(test)]
 // mod tests {
+//     use crate::data::{AuthInfo};
 //     use crate::TubeDBClient;
+//
+//     const SERVER_URL: &str = "http://vhrz1078.hrz.uni-marburg.de:8100";
 //
 //     #[tokio::test]
 //     async fn region_list() {
-//         let client = TubeDBClient::new("http://localhost:8080").unwrap();
+//         let ai = AuthInfo::Digest{username: "geoengine".to_string(),  password: "bvq$LFhQGY5f".to_string()};
+//         let client = TubeDBClient::new(SERVER_URL, ai).unwrap();
 //         let result = client.region_list().await;
 //         assert!(result.is_ok());
 //         println!("Result: {:?}", result.unwrap());
@@ -66,7 +70,8 @@ impl TubeDBClient {
 //
 //     #[tokio::test]
 //     async fn region_json_ok() {
-//         let client = TubeDBClient::new("http://localhost:8080").unwrap();
+//         let ai = AuthInfo::Digest{username: "geoengine".to_string(),  password: "bvq$LFhQGY5f".to_string()};
+//         let client = TubeDBClient::new(SERVER_URL, ai).unwrap();
 //         let result = client.region_json("nature40").await;
 //         assert!(result.is_ok());
 //         println!("Result: {:?}", result.unwrap());
@@ -74,7 +79,8 @@ impl TubeDBClient {
 //
 //     #[tokio::test]
 //     async fn region_json_illegal_region() {
-//         let client = TubeDBClient::new("http://localhost:8080").unwrap();
+//         let ai = AuthInfo::Digest{username: "geoengine".to_string(),  password: "bvq$LFhQGY5f".to_string()};
+//         let client = TubeDBClient::new(SERVER_URL, ai).unwrap();
 //         let result = client.region_json("ASDF").await;
 //         assert!(result.is_err());
 //         if let Err(crate::error::Error::InvalidRegion(..)) = result {
